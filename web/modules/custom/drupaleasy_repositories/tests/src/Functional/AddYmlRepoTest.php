@@ -30,7 +30,19 @@ final class AddYmlRepoTest extends BrowserTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-    // Set up the test here.
+
+    // Configure tests to use the yml_remote plugin.
+    $config = $this->config(name: 'drupaleasy_repositories.settings');
+    $config->set('repositories_plugins', ['yml_remote' => 'yml_remote']);
+    $config->save();
+
+    // Create and login as a Drupal user with permission to access the
+    // DrupalEasy Repositories Settings page. This is UID=2 because UID=1 is
+    // created by
+    // web/core/lib/Drupal/Core/Test/FunctionalTestSetupTrait::installParameters().
+    // This root user can be accessed via $this->rootUser.
+    $admin_user = $this->drupalCreateUser(['configure drupaleasy repositories']);
+    $this->drupalLogin($admin_user);
   }
 
   /**
