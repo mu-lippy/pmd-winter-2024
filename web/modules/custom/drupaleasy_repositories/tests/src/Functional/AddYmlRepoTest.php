@@ -5,6 +5,7 @@ declare(strict_types = 1);
 namespace Drupal\Tests\drupaleasy_repositories\Functional;
 
 use Drupal\Tests\BrowserTestBase;
+use Drupal\Tests\drupaleasy_repositories\Traits\RepositoryContentTypeTrait;
 
 /**
  * Test description.
@@ -12,21 +13,26 @@ use Drupal\Tests\BrowserTestBase;
  * @group drupaleasy_repositories
  */
 final class AddYmlRepoTest extends BrowserTestBase {
-
+  use RepositoryContentTypeTrait;
   /**
    * {@inheritdoc}
    */
-  protected $defaultTheme = 'claro';
+  protected $defaultTheme = 'stark';
 
   /**
    * {@inheritdoc}
    */
   protected static $modules = [
     'drupaleasy_repositories',
+    'user',
+    'link',
+    'node',
   ];
 
   /**
    * {@inheritdoc}
+   *
+   * @throws \Drupal\Core\Entity\EntityStorageException
    */
   protected function setUp(): void {
     parent::setUp();
@@ -43,22 +49,121 @@ final class AddYmlRepoTest extends BrowserTestBase {
     // This root user can be accessed via $this->rootUser.
     $admin_user = $this->drupalCreateUser(['configure drupaleasy repositories']);
     $this->drupalLogin($admin_user);
+    $this->createRepositoryContentType();
+
+    // Create multivalued Repositories URL field for user profiles.
+    // FieldStorageConfig::create([
+    //   'field_name' => 'field_repository_url',
+    //   'type' => 'link',
+    //   'entity_type' => 'user',
+    //   'cardinality' => -1,
+    // ])->save();
+    // FieldConfig::create([
+    //   'field_name' => 'field_repository_url',
+    //   'entity_type' => 'user',
+    //   'bundle' => 'user',
+    //   'label' => 'Repository URL',
+    // ])->save();
+    // Ensure that the new Repository URL field is visible in the existing
+    // user entity form mode.
+    /** @var \Drupal\Core\Entity\EntityDisplayRepository $entity_display_repository  */
+    $entity_display_repository = \Drupal::service('entity_display.repository');
+    $entity_display_repository->getFormDisplay('user', 'user', 'default')
+      ->setComponent('field_repository_url', ['type' => 'link_default'])
+      ->save();
+
   }
 
   /**
    * Test callback.
    *
    * @test
-   */
-  public function testSomething(): void {
-    $admin_user = $this->drupalCreateUser([
-      'access administration pages',
-      //'administer site configuration',
-    ]);
+   * //  */
+  // Public function testSomething(): void {
+  //   $admin_user = $this->drupalCreateUser([
+  //     'access administration pages',
+  //     // 'administer site configuration',
+  //   ]);.
+  // $this->drupalLogin($admin_user);
+  //   $this->drupalGet('admin');
+  //   $this->assertSession()->elementExists('xpath',
+  // '//h1[text() = "Administration"]');
+  // }.
 
-    $this->drupalLogin($admin_user);
-    $this->drupalGet('admin');
-    $this->assertSession()->elementExists('xpath', '//h1[text() = "Administration"]');
+  /**
+   * Test that the settings page can be reached and works as expected.
+   *
+   * This tests that an admin user can access the settings page, select a
+   * plugin to enable, and submit the page successfully.
+   *
+   * @return void
+   *   Returns nothing.
+   */
+  public function testSettingsPage() : void {
+    // Get a handle on the browsing session.
+    $session = $this->assertSession();
+
+    // Navigate to the DrupalEasy Repositories Settings page and confirm we
+    // can reach it.
+    $this->drupalGet('/admin/config/services/repositories');
+    // Try this with a 500 status code to see it fail.
+    $session->statusCodeEquals(200);
+
+    // Select the "Remote .yml file" checkbox and submit the form.
+    $edit = [
+      'edit-repositories-plugins-yml-remote' => 'yml_remote',
+    ];
+    $this->submitForm($edit, 'Save configuration');
+    $session->statusCodeEquals(200);
+    $session->responseContains('The configuration options have been saved.');
+    $session->checkboxChecked('edit-repositories-plugins-yml-remote');
+    $session->checkboxNotChecked('edit-repositories-plugins-github');
+
   }
 
+  /**
+   * Test that a yml repo can be added to profile by a user.
+   *
+   * This tests that a yml-based repo can be added to a user's profile and
+   * that a repository node is successfully created upon saving the profile.
+   *
+   * @test
+   */
+  public function testAddYmlRepo(): void {
+
+    // Create and login as a Drupal user with permission to access
+    // content.
+    $user = $this->drupalCreateUser(['access content']);
+    $this->drupalLogin($user);
+
+    // Get a handle on the browsing session.
+    $session = $this->assertSession();
+
+    // Navigate to their edit profile page and confirm we can reach it.
+    $this->drupalGet('/user/' . $user->id() . '/edit');
+    // Try this with a 500 status code to see it fail.
+    $session->statusCodeEquals(200);
+
+  }
+
+  // /**
+  //  * Test that the settings page cannot be reached without permission.
+  //  *
+  //  * @return void
+  //  *   Returns nothing.
+  //  *
+  //  * @test
+  //  *
+  //  * @throws \Behat\Mink\Exception\ExpectationException
+  //  * @throws \Drupal\Core\Entity\EntityStorageException
+  //  */
+  // public function testUnprivilegedSettingsPage(): void {
+  //   $session = $this->assertSession();
+  //   $authenticated_user = $this->drupalCreateUser(['access content']);
+  //   $this->drupalLogin($authenticated_user);
+  //   $this->drupalGet('/admin/config/services/repositories');
+  //   // Test to ensure that the page loads without error.
+  //   // See https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+  //   $session->statusCodeEquals(403);
+  // }
 }
