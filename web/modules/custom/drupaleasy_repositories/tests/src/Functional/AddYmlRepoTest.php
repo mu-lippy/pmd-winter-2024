@@ -4,6 +4,8 @@ declare(strict_types = 1);
 
 namespace Drupal\Tests\drupaleasy_repositories\Functional;
 
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\Tests\drupaleasy_repositories\Traits\RepositoryContentTypeTrait;
 
@@ -52,18 +54,18 @@ final class AddYmlRepoTest extends BrowserTestBase {
     $this->createRepositoryContentType();
 
     // Create multivalued Repositories URL field for user profiles.
-    // FieldStorageConfig::create([
-    //   'field_name' => 'field_repository_url',
-    //   'type' => 'link',
-    //   'entity_type' => 'user',
-    //   'cardinality' => -1,
-    // ])->save();
-    // FieldConfig::create([
-    //   'field_name' => 'field_repository_url',
-    //   'entity_type' => 'user',
-    //   'bundle' => 'user',
-    //   'label' => 'Repository URL',
-    // ])->save();
+    FieldStorageConfig::create([
+      'field_name' => 'field_repository_url',
+      'type' => 'link',
+      'entity_type' => 'user',
+      'cardinality' => -1,
+    ])->save();
+    FieldConfig::create([
+      'field_name' => 'field_repository_url',
+      'entity_type' => 'user',
+      'bundle' => 'user',
+      'label' => 'Repository URL',
+    ])->save();
     // Ensure that the new Repository URL field is visible in the existing
     // user entity form mode.
     /** @var \Drupal\Core\Entity\EntityDisplayRepository $entity_display_repository  */
@@ -78,19 +80,16 @@ final class AddYmlRepoTest extends BrowserTestBase {
    * Test callback.
    *
    * @test
-   * //  */
-  // Public function testSomething(): void {
-  //   $admin_user = $this->drupalCreateUser([
-  //     'access administration pages',
-  //     // 'administer site configuration',
-  //   ]);.
-  // $this->drupalLogin($admin_user);
-  //   $this->drupalGet('admin');
-  //   $this->assertSession()->elementExists('xpath',
-  // '//h1[text() = "Administration"]');
-  // }.
-
-  /**
+   *
+   * Public function testSomething(): void {
+   * $admin_user = $this->drupalCreateUser([
+   * 'access administration pages',
+   *   'administer site configuration',
+   *  ]);.
+   * $this->drupalLogin($admin_user);
+   * $this->drupalGet('admin');
+   * $this->assertSession()->elementExists('xpath',
+   * '//h1[text() = "Administration"]');}.
    * Test that the settings page can be reached and works as expected.
    *
    * This tests that an admin user can access the settings page, select a
@@ -144,26 +143,40 @@ final class AddYmlRepoTest extends BrowserTestBase {
     // Try this with a 500 status code to see it fail.
     $session->statusCodeEquals(200);
 
+    // Get the full path to the test .yml file.
+    /** @var \Drupal\Core\Extension\ModuleHandlerInterface $module_handler */
+    $module_handler = \Drupal::service('module_handler');
+    $module = $module_handler->getModule('drupaleasy_repositories');
+    $module_full_path = \Drupal::request()->getUri() . $module->getPath();
+
+    $edit = [
+      'field_repository_url[0][uri]' => $module_full_path . '/tests/assets/batman-repo.yml',
+    ];
+    $this->submitForm($edit, 'Save');
+    $session->statusCodeEquals(200);
+    $session->responseContains('The changes have been saved.');
+    // We can't check for the following message unless we also have the future
+    // drupaleasy_notify module enabled.
+    // phpcs:ignore
+    // $session->responseContains('The repo named
+    // <em class="placeholder">The Batman repository</em> has been created');.
+    // Find the new repository node.
+    $query = \Drupal::entityQuery('node');
+    $query->condition('type', 'repository');
+    $results = $query->accessCheck(FALSE)->execute();
+    $session->assert(count($results) === 1, 'Either 0 or more than 1 repository nodes were found.');
+
+    $entity_type_manager = \Drupal::entityTypeManager();
+    $node_storage = $entity_type_manager->getStorage('node');
+    /** @var \Drupal\node\NodeInterface $node */
+    $node = $node_storage->load(reset($results));
+
+    $session->assert($node->field_machine_name->value === 'batman-repo', 'Machine name does not match.');
+    $session->assert($node->field_source->value === 'yml_remote', 'Source does not match.');
+    $session->assert($node->getTitle() === 'The Batman repository', 'Label does not match.');
+    $session->assert($node->field_description->value === 'This is where Batman keeps all his crime-fighting code.', 'Description does not match.');
+    $session->assert((int) $node->field_number_of_issues->value === 6, 'Number of issues does not match.');
+
   }
 
-  // /**
-  //  * Test that the settings page cannot be reached without permission.
-  //  *
-  //  * @return void
-  //  *   Returns nothing.
-  //  *
-  //  * @test
-  //  *
-  //  * @throws \Behat\Mink\Exception\ExpectationException
-  //  * @throws \Drupal\Core\Entity\EntityStorageException
-  //  */
-  // public function testUnprivilegedSettingsPage(): void {
-  //   $session = $this->assertSession();
-  //   $authenticated_user = $this->drupalCreateUser(['access content']);
-  //   $this->drupalLogin($authenticated_user);
-  //   $this->drupalGet('/admin/config/services/repositories');
-  //   // Test to ensure that the page loads without error.
-  //   // See https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
-  //   $session->statusCodeEquals(403);
-  // }
 }
