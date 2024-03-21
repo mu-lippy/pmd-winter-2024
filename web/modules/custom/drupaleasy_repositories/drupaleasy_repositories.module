@@ -2,17 +2,12 @@
 
 /**
  * @file
+ * Primary module hooks for DrupalEasy Repositories module.
  */
 
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
 use Drupal\user\Entity\User;
-use Drupal\Core\StringTranslation\StringTranslationTrait;
-
-/**
- * @file
- * Primary module hooks for DrupalEasy Repositories module.
- */
 
 /**
  * Implements hook_form_FORM_ID_alter().
@@ -34,13 +29,14 @@ function drupaleasy_repositories_form_user_form_alter(array &$form, FormStateInt
  *   The form state.
  */
 function drupaleasy_repositories_user_form_submit(array $form, FormStateInterface $form_state) : void {
-   /** @var \Drupal\drupaleasy_repositories\DrupaleasyRepositoriesService $repository_service */
-   $repository_service = \Drupal::service('drupaleasy_repositories.service');
-   $account = User::load($form_state->getValue('uid'));
-   if (!is_null($account)) {
-    //  $repository_service->updateRepositories($account);
-   }
+  /** @var \Drupal\drupaleasy_repositories\DrupaleasyRepositoriesService $repository_service */
+  $repository_service = \Drupal::service('drupaleasy_repositories.service');
+  $account = User::load($form_state->getValue('uid'));
+  if (!is_null($account)) {
+    // $repository_service->updateRepositories($account);
+  }
 }
+
 /**
  * Custom validation handler for user profile form.
  *
@@ -50,23 +46,22 @@ function drupaleasy_repositories_user_form_submit(array $form, FormStateInterfac
  *   The form state.
  */
 function _drupaleasy_repositories_user_form_validate(array $form, FormStateInterface &$form_state): void {
-   /** @var \Drupal\drupaleasy_repositories\DrupaleasyRepositoriesService $repository_service */
-   $repository_service = \Drupal::service('drupaleasy_repositories.service');
-   // For some reason, $form_state->getValue('uid') isn't a thing.
-   $username = $form_state->getValue('name');
-   $user = User::load($username);
-   // If the user doesn't exist, then use the anonymous user ID (0).
-   $uid = is_object($user) ? (int) $user->id() : 0;
-   $error = $repository_service->validateRepositoryUrls($form_state->getValue('field_repository_url'), $uid);
+  /** @var \Drupal\drupaleasy_repositories\DrupaleasyRepositoriesService $repository_service */
+  $repository_service = \Drupal::service('drupaleasy_repositories.service');
+  // For some reason, $form_state->getValue('uid') isn't a thing.
+  $username = $form_state->getValue('name');
+  $user = user_load_by_name($username);
+  // If the user doesn't exist, then use the anonymous user ID (0).
+  $uid = is_object($user) ? (int) $user->id() : 0;
+  $error = $repository_service->validateRepositoryUrls($form_state->getValue('field_repository_url'), $uid);
 
-   if ($error) {
-     $form_state->setErrorByName(
-       'field_repository_url',
-       $error,
-     );
-   }
- }
-
+  if ($error) {
+    $form_state->setErrorByName(
+      'field_repository_url',
+      $error,
+    );
+  }
+}
 
 /**
  * Custom function to populate Repository URL descriptions.
