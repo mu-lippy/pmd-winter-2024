@@ -1,5 +1,5 @@
 {
-"intelephense.environment.phpVersion": "8.2",
+"intelephense.environment.phpVersion": "8.1",
 /* DDEV container */
 /* PHP Linting */
 "php.validate.executablePath": "/usr/bin/php",

@@ -140,9 +140,13 @@ final class DrupaleasyRepositoriesService {
               $is_valid_url = TRUE;
               $repo_metadata = $repository_plugin->getRepo($uri);
               if ($repo_metadata) {
-                break;
+                if (!$this->isUnique($repo_metadata, $uid)) {
+                  $errors[] = $this->t('The repository at %uri has been added by another user.', ['%uri' => $uri]);
+                }
               }
-              $errors[] = $this->t('The repository at the url %uri was not found.', ['%uri' => $uri]);
+              else {
+                $errors[] = $this->t('The repository at the url %uri was not found.', ['%uri' => $uri]);
+              }
             }
           }
           if (!$is_valid_url) {
@@ -189,8 +193,9 @@ final class DrupaleasyRepositoriesService {
         }
       }
     }
-    return $this->updateRepositoryNodes($repos_metadata, $account) ||
-      $this->deleteRepositoryNodes($repos_metadata, $account);
+    $repos_updated = $this->updateRepositoryNodes($repos_metadata, $account);
+    $repos_deleted = $this->deleteRepositoryNodes($repos_metadata, $account);
+    return $repos_updated || $repos_deleted;
 
   }
 
@@ -314,7 +319,7 @@ final class DrupaleasyRepositoriesService {
   /**
    * Check to see if the repository is unique.
    *
-   * @param array <string, array<string, string|int>> $repo_info
+   * @param array<string, array<string, string|int>> $repo_info
    *   The repository info.
    * @param int $uid
    *   The user ID of the submitter.
@@ -322,7 +327,7 @@ final class DrupaleasyRepositoriesService {
    * @return bool
    *   Return true if the repository is unique.
    */
-  protected function isUnique(array $repo_info, int $uid) : bool {
+  protected function isUnique(array $repo_info, int $uid): bool {
     $node_storage = $this->entityTypeManager->getStorage('node');
 
     $repo_metadata = array_pop($repo_info);
@@ -334,6 +339,7 @@ final class DrupaleasyRepositoriesService {
       ->condition('uid', $uid, '<>')
       ->accessCheck(FALSE)
       ->execute();
+
     return !count($results);
   }
 
