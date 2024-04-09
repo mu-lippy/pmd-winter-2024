@@ -196,7 +196,6 @@ final class DrupaleasyRepositoriesService {
     $repos_updated = $this->updateRepositoryNodes($repos_metadata, $account);
     $repos_deleted = $this->deleteRepositoryNodes($repos_metadata, $account);
     return $repos_updated || $repos_deleted;
-
   }
 
   /**
@@ -274,7 +273,6 @@ final class DrupaleasyRepositoriesService {
       }
     }
     return TRUE;
-
   }
 
   /**

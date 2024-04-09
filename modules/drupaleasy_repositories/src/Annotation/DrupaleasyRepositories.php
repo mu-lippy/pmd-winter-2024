@@ -23,7 +23,7 @@ final class DrupaleasyRepositories extends Plugin {
    *
    * @ingroup plugin_translatable
    */
-  public string $title;
+  public string $label;
 
   /**
    * The description of the plugin.

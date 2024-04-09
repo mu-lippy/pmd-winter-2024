@@ -1,13 +1,11 @@
-uuid: c4498004-38a4-4318-b10f-e67c5346a3e7
+uuid: 9729a99c-d45d-4002-8a12-866dcedef6a9
 langcode: en
 status: true
 dependencies:
   module:
     - node
-_core:
-  default_config_hash: ThqeFaTa035swSFHzqT-8Jo1jhyBNTJJCe4whrEFFkU
-id: node.field_source
-field_name: field_source
+id: node.field_machine_name
+field_name: field_machine_name
 entity_type: node
 type: string
 settings:

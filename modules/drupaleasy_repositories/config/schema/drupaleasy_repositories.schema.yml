@@ -1,7 +1,7 @@
-# Schema for the configuration files of the Drupaleasy repositories module.
+# Schema for the configuration files of the DrupalEasy Repositories module.
 drupaleasy_repositories.settings:
   type: config_object
-  label: 'Drupaleasy repositories settings'
+  label: 'DrupalEasy Repositories settings'
   mapping:
     repositories_plugins:
       type: sequence
